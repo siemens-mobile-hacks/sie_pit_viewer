@@ -14,12 +14,11 @@ static HEADER_DESC HEADER_D = {{0, 0, 0, 0}, NULL, LGP_NULL, LGP_NULL};
 
 static SOFTKEY_DESC SOFTKEY_D[] = {
     {0x0018, 0x0000, (int)"Options"},
-    {0x003D, 0x0000, (int)LGP_NULL},
+    {0x0018, 0x0000, (int)LGP_MENU_PIC},
 };
-static const int SOFTKEYS[] = {1, 0};
 
 static SOFTKEYSTAB SOFTKEYS_TAB = {
-    SOFTKEY_D, 2
+    SOFTKEY_D, 0
 };
 
 static void OnRedraw(GUI *gui) {
@@ -121,6 +120,8 @@ void SetHeader(GUI *gui) {
 static void GHook(GUI *gui, int cmd) {
     if (cmd == TI_CMD_REDRAW) {
         SetHeader(gui);
+        SetSoftKey(gui, &SOFTKEY_D[0], 1);
+        SetSoftKey(gui, &SOFTKEY_D[1], 2);
     }
     else if (cmd == TI_CMD_CREATE) {
         static GUI_METHODS gui_methods;
@@ -132,29 +133,36 @@ static void GHook(GUI *gui, int cmd) {
     }
 }
 
-static TVIEW_DESC TVIEW_D = {
-    0,
+static INPUTDIA_DESC INPUTDIA_D = {
+    1,
     OnKey,
     GHook,
     NULL,
-    SOFTKEYS,
+    0,
     &SOFTKEYS_TAB,
     {0, 0, 0, 0},
     FONT_SMALL,
-    0x64,
-    0x65,
+    100,
+    101,
     0,
-    0
+    { 0 },
+    { INPUTDIA_FLAGS_SWAP_SOFTKEYS },
 };
 
 int CreateUI() {
     memcpy(&(HEADER_D.rc), GetHeaderRECT(), sizeof(RECT));
-    memcpy(&(TVIEW_D.rc), GetMainAreaRECT(), sizeof(RECT));
+    memcpy(&(INPUTDIA_D.rc), GetMainAreaRECT(), sizeof(RECT));
 
-    void *gui = TViewGetGUI(malloc_adr(), mfree_adr());
-    TViewSetDefinition(gui, &TVIEW_D);
-    TViewSetText(gui, AllocWS(1), malloc_adr(), mfree_adr());
-    TViewSetUserPointer(gui, &DATA);
-    SetHeaderToMenu(gui, &HEADER_D, malloc_adr());
-    return CreateGUI(gui);
+    void *ma = malloc_adr();
+    void *eq = AllocEQueue(ma, mfree_adr());
+
+    EDITCONTROL ec;
+    WSHDR *ws = AllocWS(8);
+    PrepareEditControl(&ec);
+
+    ConstructEditControl(&ec, ECT_HEADER, ECF_SET_CURSOR_END, ws, 8);
+    AddEditControlToEditQend(eq, &ec, ma);
+    FreeWS(ws);
+
+    return CreateInputTextDialog(&INPUTDIA_D, &HEADER_D, eq, 1, &DATA);
 }
