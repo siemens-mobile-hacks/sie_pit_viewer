@@ -3,6 +3,7 @@
 #include <string.h>
 #include <sys/param.h>
 #include <sie/sie.h>
+#include "menu_options.h"
 
 #define PIT_MAX 20000
 
@@ -14,14 +15,14 @@ static UI_DATA DATA = {};
 
 static HEADER_DESC HEADER_D = {{0, 0, 0, 0}, NULL, LGP_NULL, LGP_NULL};
 
-static SOFTKEY_DESC SK[] = {
+static SOFTKEY_DESC SOFTKEY_D[] = {
     {0x0018, 0x0000, (int)"Options"},
     {0x003D, 0x0000, (int)LGP_NULL},
 };
 static const int SOFTKEYS[] = {1, 0};
 
-static SOFTKEYSTAB SKT = {
-    SK, 2
+static SOFTKEYSTAB SOFTKEYS_TAB = {
+    SOFTKEY_D, 2
 };
 
 static void OnRedraw(GUI *gui) {
@@ -87,6 +88,8 @@ int FindPrevID(int id) {
 static int OnKey(GUI *gui, GUI_MSG *msg) {
     if (msg->keys == 0x01) {
         return 1;
+    } else if (msg->keys == 0x18) {
+        CreateOptionsMenu();
     }
     else if (msg->gbsmsg->msg == KEY_DOWN  || msg->gbsmsg->msg == LONG_PRESS) {
         int step = (msg->gbsmsg->msg == KEY_DOWN) ? 1 : 10;
@@ -138,7 +141,7 @@ static TVIEW_DESC TVIEW_D = {
     GHook,
     NULL,
     SOFTKEYS,
-    &SKT,
+    &SOFTKEYS_TAB,
     {0, 0, 0, 0},
     FONT_SMALL,
     0x64,
