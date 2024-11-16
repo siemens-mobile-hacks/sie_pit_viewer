@@ -1,5 +1,6 @@
-#include <string.h>
 #include <swilib.h>
+#include <string.h>
+#include "edit_go_to.h"
 
 #define MAX_ITEMS 1
 
@@ -11,7 +12,10 @@ static const MENUITEM_DESC MENU_ITEMS[MAX_ITEMS] = {
 };
 
 void GoTo_Proc(GUI *gui) {
-    ShowMSG(1, (int)"Go to...");
+    GUI *main_gui = MenuGetUserPointer(gui);
+
+    GeneralFuncF1(1);
+    CreateInputTextDialog_GoTo(main_gui);
 }
 
 static const MENUPROCS_DESC MENU_PROCS[MAX_ITEMS] = {
@@ -43,7 +47,7 @@ static const MENU_DESC MENU_D = {
     MAX_ITEMS,
 };
 
-int CreateOptionsMenu() {
+int CreateMenu_Options(GUI *main_gui) {
     memcpy(&(HEADER_D.rc), GetOptionsHeaderRect(), sizeof(RECT));
-    return CreateMenu(1, 0, &MENU_D, &HEADER_D, 0, 1, NULL, NULL);
+    return CreateMenu(1, 0, &MENU_D, &HEADER_D, 0, 1, main_gui, NULL);
 }

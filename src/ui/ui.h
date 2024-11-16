@@ -1,3 +1,7 @@
 #pragma once
 
-int CreateMainGUI();
+typedef struct {
+    int id;
+} UI_DATA;
+
+int CreateUI();

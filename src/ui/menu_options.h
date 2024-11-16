@@ -1,3 +1,4 @@
 #pragma once
+#include <swilib.h>
 
-int CreateOptionsMenu();
+int CreateMenu_Options(GUI *main_gui);

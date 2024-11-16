@@ -3,13 +3,10 @@
 #include <string.h>
 #include <sys/param.h>
 #include <sie/sie.h>
+#include "ui.h"
 #include "menu_options.h"
 
 #define PIT_MAX 20000
-
-typedef struct {
-    int id;
-} UI_DATA;
 
 static UI_DATA DATA = {};
 
@@ -89,7 +86,7 @@ static int OnKey(GUI *gui, GUI_MSG *msg) {
     if (msg->keys == 0x01) {
         return 1;
     } else if (msg->keys == 0x18) {
-        CreateOptionsMenu();
+        CreateMenu_Options(gui);
     }
     else if (msg->gbsmsg->msg == KEY_DOWN  || msg->gbsmsg->msg == LONG_PRESS) {
         int step = (msg->gbsmsg->msg == KEY_DOWN) ? 1 : 10;
@@ -150,13 +147,14 @@ static TVIEW_DESC TVIEW_D = {
     0
 };
 
-int CreateMainGUI() {
+int CreateUI() {
     memcpy(&(HEADER_D.rc), GetHeaderRECT(), sizeof(RECT));
     memcpy(&(TVIEW_D.rc), GetMainAreaRECT(), sizeof(RECT));
 
     void *gui = TViewGetGUI(malloc_adr(), mfree_adr());
     TViewSetDefinition(gui, &TVIEW_D);
     TViewSetText(gui, AllocWS(1), malloc_adr(), mfree_adr());
+    TViewSetUserPointer(gui, &DATA);
     SetHeaderToMenu(gui, &HEADER_D, malloc_adr());
     return CreateGUI(gui);
 }

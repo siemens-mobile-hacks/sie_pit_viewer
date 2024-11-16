@@ -11,7 +11,7 @@ unsigned short maincsm_name_body[140];
 
 static void CSM_OnCreate(CSM_RAM *data) {
     MAIN_CSM *csm = (MAIN_CSM*)data;
-    csm->gui_id = CreateMainGUI();
+    csm->gui_id = CreateUI();
 }
 
 static void CSM_OnClose(CSM_RAM *csm) {
