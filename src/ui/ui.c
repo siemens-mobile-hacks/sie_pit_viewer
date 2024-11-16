@@ -112,9 +112,12 @@ static int OnKey(GUI *gui, GUI_MSG *msg) {
 }
 
 void SetHeader(GUI *gui) {
-    WSHDR *ws = AllocWS(64);
-    wsprintf(ws, "PIT: %d", DATA.id);
+    WSHDR *ws = AllocWS(16);
+    wsprintf(ws, "%dx%d", GetImgWidth(DATA.id), GetImgHeight(DATA.id));
+    WSHDR *ws_extra = AllocWS(8);
+    wsprintf(ws_extra, "%d", DATA.id);
     SetHeaderText(GetHeaderPointer(gui), ws, malloc_adr(), mfree_adr());
+    SetHeaderExtraText(GetHeaderPointer(gui), ws_extra, malloc_adr(), mfree_adr());
 }
 
 static void GHook(GUI *gui, int cmd) {
