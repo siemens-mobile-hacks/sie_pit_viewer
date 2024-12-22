@@ -22,11 +22,22 @@ static const MENUPROCS_DESC MENU_PROCS[MAX_ITEMS] = {
     GoTo_Proc,
 };
 
-static const int SOFTKEYS[] = {1, 0};
+static const int SOFTKEYS[] = {
+#ifdef NEWSGOLD
+    SET_LEFT_SOFTKEY, SET_MIDDLE_SOFTKEY, SET_RIGHT_SOFTKEY
+#else
+    SET_LEFT_SOFTKEY, SET_RIGHT_SOFTKEY
+#endif
+};
 
 static const SOFTKEY_DESC SOFTKEY_D[] = {
     {0x0018, 0x0000, (int)"Select"},
+#ifdef NEWSGOLD
+    {0x0000, 0x0000, (int)LGP_DOIT_PIC},
+#else
     {0x0000, 0x0000, (int)""},
+#endif
+    {0x0001, 0x0001, (int)"Back"},
 };
 
 static const SOFTKEYSTAB SOFTKEYS_TAB = {

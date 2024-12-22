@@ -15,6 +15,7 @@ static HEADER_DESC HEADER_D = {{0, 0, 0, 0}, NULL, LGP_NULL, LGP_NULL};
 static SOFTKEY_DESC SOFTKEY_D[] = {
     {0x0018, 0x0000, (int)"Options"},
     {0x0018, 0x0000, (int)LGP_MENU_PIC},
+    {0x0001, 0x0000, (int)"Quit"},
 };
 
 static SOFTKEYSTAB SOFTKEYS_TAB = {
@@ -22,9 +23,10 @@ static SOFTKEYSTAB SOFTKEYS_TAB = {
 };
 
 static void OnRedraw(GUI *gui) {
-    RECT *rect = GetMainAreaRECT();
-    int x = ((rect->x2 - rect->x) - GetImgWidth(DATA.id)) / 2;
-    int y = HeaderH() + ((rect->y2 - rect->y) - GetImgHeight(DATA.id)) / 2;
+    RECT *header_rect = GetHeaderRECT();
+    RECT *main_area_rect = GetMainAreaRECT();
+    int x = ((main_area_rect->x2 - main_area_rect->x) - GetImgWidth(DATA.id)) / 2;
+    int y = header_rect->y2 + ((main_area_rect->y2 - main_area_rect->y) - GetImgHeight(DATA.id)) / 2;
     DrawImg(x, y, DATA.id);
 }
 
@@ -123,8 +125,11 @@ void SetHeader(GUI *gui) {
 static void GHook(GUI *gui, int cmd) {
     if (cmd == TI_CMD_REDRAW) {
         SetHeader(gui);
-        SetSoftKey(gui, &SOFTKEY_D[0], 1);
-        SetSoftKey(gui, &SOFTKEY_D[1], 2);
+        SetSoftKey(gui, &SOFTKEY_D[0], SET_LEFT_SOFTKEY);
+        SetSoftKey(gui, &SOFTKEY_D[1], SET_MIDDLE_SOFTKEY);
+#ifdef NEWSGOLD
+        SetSoftKey(gui, &SOFTKEY_D[2], SET_RIGHT_SOFTKEY);
+#endif
     }
     else if (cmd == TI_CMD_CREATE) {
         static GUI_METHODS gui_methods;
