@@ -8,29 +8,31 @@
 
 #define PIT_MAX 20000
 
-static UI_DATA DATA = {};
-
 static HEADER_DESC HEADER_D = {{0, 0, 0, 0}, NULL, LGP_NULL, LGP_NULL};
 
 static SOFTKEY_DESC SOFTKEY_D[] = {
     {0x0018, 0x0000, (int)"Options"},
     {0x0018, 0x0000, (int)LGP_MENU_PIC},
-    {0x0001, 0x0000, (int)"Quit"},
+    {0x0001, 0x0000, (int)"Exit"},
 };
 
 static SOFTKEYSTAB SOFTKEYS_TAB = {
     SOFTKEY_D, 0
 };
 
+static UI_DATA *DATA;
+
 static void OnRedraw(GUI *gui) {
     RECT *header_rect = GetHeaderRECT();
     RECT *main_area_rect = GetMainAreaRECT();
-    int x = ((main_area_rect->x2 - main_area_rect->x) - GetImgWidth(DATA.id)) / 2;
-    int y = header_rect->y2 + ((main_area_rect->y2 - main_area_rect->y) - GetImgHeight(DATA.id)) / 2;
-    DrawImg(x, y, DATA.id);
+    int x = ((main_area_rect->x2 - main_area_rect->x) - GetImgWidth(DATA->id)) / 2;
+    int y = header_rect->y2 + ((main_area_rect->y2 - main_area_rect->y) - GetImgHeight(DATA->id)) / 2;
+    DrawImg(x, y, DATA->id);
 }
 
-SIE_FILE *FindPNGFiles() {
+void FindPNGFiles(GUI *gui) {
+    UI_DATA *data = EDIT_GetUserPointer(gui);
+
     SIE_FILE *files = NULL;
     char *path = "0:\\zbin\\img\\*.png";
     const unsigned char disks[] = { '0', '4', '1', '2' };
@@ -41,46 +43,58 @@ SIE_FILE *FindPNGFiles() {
             break;
         }
     }
-    return files;
+    data->files = files;
 }
 
-int FindLastID() {
+void FindLastID(GUI *gui) {
+    UI_DATA *data = EDIT_GetUserPointer(gui);
+    if (!data->files) {
+        FindPNGFiles(gui);
+    }
+
     int id = 0;
-    SIE_FILE *p = FindPNGFiles();
+    SIE_FILE *p = data->files;
     while (p) {
         id = MAX(id, strtol(p->file_name, NULL, 10));
         p = p->next;
     }
-    Sie_FS_DestroyFiles(p);
-    return MAX(id, GetPITSize() - 1);
+    data->id = MAX(id, GetPITSize() - 1);
 }
 
-int FindNextID(int id) {
+void FindNextID(GUI *gui) {
+    UI_DATA *data = EDIT_GetUserPointer(gui);
+    if (!data->files) {
+        FindPNGFiles(gui);
+    }
+
     int new_id = PIT_MAX;
-    SIE_FILE *p = FindPNGFiles();
+    SIE_FILE *p = data->files;
     while (p) {
         int f_id = strtol(p->file_name, NULL, 10);
-        if (f_id >= GetPITSize() && f_id > id) {
+        if (f_id >= GetPITSize() && f_id > data->id) {
             new_id = MIN(new_id, f_id);
         }
         p = p->next;
     }
-    Sie_FS_DestroyFiles(p);
-    return (new_id == PIT_MAX) ? 0 : new_id;
+    data->id = (new_id == PIT_MAX) ? 0 : new_id;
 }
 
-int FindPrevID(int id) {
+void FindPrevID(GUI *gui) {
+    UI_DATA *data = EDIT_GetUserPointer(gui);
+    if (!data->files) {
+        FindPNGFiles(gui);
+    }
+
     int new_id = GetPITSize() - 1;
-    SIE_FILE *p = FindPNGFiles();
+    SIE_FILE *p = data->files;
     while (p) {
         int f_id = strtol(p->file_name, NULL, 10);
-        if (GetPITSize() - 1 < f_id && f_id < id) {
+        if (GetPITSize() - 1 < f_id && f_id < data->id) {
             new_id = MAX(new_id, f_id);
         }
         p = p->next;
     }
-    Sie_FS_DestroyFiles(p);
-    return new_id;
+    data->id = new_id;
 }
 
 static int OnKey(GUI *gui, GUI_MSG *msg) {
@@ -90,21 +104,23 @@ static int OnKey(GUI *gui, GUI_MSG *msg) {
         CreateMenu_Options(gui);
     }
     else if (msg->gbsmsg->msg == KEY_DOWN  || msg->gbsmsg->msg == LONG_PRESS) {
+        UI_DATA *data = EDIT_GetUserPointer(gui);
+
         int step = (msg->gbsmsg->msg == KEY_DOWN) ? 1 : 10;
         switch (msg->gbsmsg->submess) {
             case LEFT_BUTTON:
-                DATA.id -= step;
-                if (DATA.id < 0) {
-                    DATA.id = FindLastID();
-                } else if (!GetPITaddr(DATA.id)) {
-                    DATA.id = FindPrevID(DATA.id);
+                data->id -= step;
+                if (data->id < 0) {
+                    FindLastID(gui);
+                } else if (!GetPITaddr(data->id)) {
+                    FindPrevID(gui);
                 }
                 DirectRedrawGUI();
                 break;
             case RIGHT_BUTTON:
-                DATA.id += step;
-                if (!GetPITaddr(DATA.id)) {
-                    DATA.id = FindNextID(DATA.id);
+                data->id += step;
+                if (!GetPITaddr(data->id)) {
+                    FindNextID(gui);
                 }
                 DirectRedrawGUI();
                 break;
@@ -114,15 +130,19 @@ static int OnKey(GUI *gui, GUI_MSG *msg) {
 }
 
 void SetHeader(GUI *gui) {
+    UI_DATA *data = EDIT_GetUserPointer(gui);
+
     WSHDR *ws = AllocWS(16);
-    wsprintf(ws, "%dx%d", GetImgWidth(DATA.id), GetImgHeight(DATA.id));
+    wsprintf(ws, "%dx%d", GetImgWidth(data->id), GetImgHeight(data->id));
     WSHDR *ws_extra = AllocWS(8);
-    wsprintf(ws_extra, "%d", DATA.id);
+    wsprintf(ws_extra, "%d", data->id);
     SetHeaderText(GetHeaderPointer(gui), ws, malloc_adr(), mfree_adr());
     SetHeaderExtraText(GetHeaderPointer(gui), ws_extra, malloc_adr(), mfree_adr());
 }
 
 static void GHook(GUI *gui, int cmd) {
+    UI_DATA *data = EDIT_GetUserPointer(gui);
+
     if (cmd == TI_CMD_REDRAW) {
         SetHeader(gui);
         SetSoftKey(gui, &SOFTKEY_D[0], SET_LEFT_SOFTKEY);
@@ -137,7 +157,11 @@ static void GHook(GUI *gui, int cmd) {
         memcpy(&gui_methods, m[1], sizeof(GUI_METHODS));
         gui_methods.onRedraw = OnRedraw;
         m[1] = &gui_methods;
+        DATA = data; // теряется указатель где-то блядь, в OnRedraw не найти :-(
     } else if (cmd == TI_CMD_DESTROY) {
+        if (data->files) {
+            Sie_FS_DestroyFiles(data->files);
+        }
     }
 }
 
@@ -172,5 +196,7 @@ int CreateUI() {
     AddEditControlToEditQend(eq, &ec, ma);
     FreeWS(ws);
 
-    return CreateInputTextDialog(&INPUTDIA_D, &HEADER_D, eq, 1, &DATA);
+    UI_DATA *data = malloc(sizeof(UI_DATA));
+    zeromem(data, sizeof(UI_DATA));
+    return CreateInputTextDialog(&INPUTDIA_D, &HEADER_D, eq, 1, data);
 }
