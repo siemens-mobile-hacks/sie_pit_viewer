@@ -1,14 +1,16 @@
 #include <swilib.h>
 #include <string.h>
+#include "ui.h"
 #include "edit_go_to.h"
 
 #define MAX_ITEMS 1
 
 static HEADER_DESC HEADER_D = {{0, 0, 0, 0}, NULL, (int)"Options", LGP_NULL};
 
+int ICON_EMPTY[] = {PIT_ICON_EMPTY};
+
 static const MENUITEM_DESC MENU_ITEMS[MAX_ITEMS] = {
-    {NULL, (int)"Go to...", LGP_NULL, 0, NULL,
-        MENU_FLAG3, MENU_FLAG2},
+    {ICON_EMPTY, (int)"Go to...", LGP_NULL, 0, NULL,MENU_FLAG3, MENU_FLAG2},
 };
 
 void GoTo_Proc(GUI *gui) {
@@ -51,7 +53,7 @@ static const MENU_DESC MENU_D = {
     NULL,
     SOFTKEYS,
     &SOFTKEYS_TAB,
-    MENU_FLAGS_ENABLE_TEXT_SCROLLING,
+    MENU_FLAGS_ENABLE_TEXT_SCROLLING | MENU_FLAGS_ENABLE_ICONS,
     NULL,
     MENU_ITEMS,
     MENU_PROCS,
