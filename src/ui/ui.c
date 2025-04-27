@@ -108,7 +108,7 @@ static int OnKey(GUI *gui, GUI_MSG *msg) {
 
         int step = (msg->gbsmsg->msg == KEY_DOWN) ? 1 : 10;
         switch (msg->gbsmsg->submess) {
-            case LEFT_BUTTON:
+            case LEFT_BUTTON: case UP_BUTTON:
                 data->id -= step;
                 if (data->id < 0) {
                     FindLastID(gui);
@@ -117,7 +117,7 @@ static int OnKey(GUI *gui, GUI_MSG *msg) {
                 }
                 DirectRedrawGUI();
                 break;
-            case RIGHT_BUTTON:
+            case RIGHT_BUTTON: case DOWN_BUTTON:
                 data->id += step;
                 if (!GetPITaddr(data->id)) {
                     FindNextID(gui);
