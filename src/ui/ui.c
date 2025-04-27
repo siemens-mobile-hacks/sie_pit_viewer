@@ -124,6 +124,10 @@ static int OnKey(GUI *gui, GUI_MSG *msg) {
                 }
                 DirectRedrawGUI();
                 break;
+            case '1':
+                PIT_ClearCache();
+                DirectRedrawGUI();
+            break;
         }
     }
     return -1;
