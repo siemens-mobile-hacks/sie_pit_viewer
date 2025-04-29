@@ -25,8 +25,13 @@ static UI_DATA *DATA;
 static void OnRedraw(GUI *gui) {
     RECT *header_rect = GetHeaderRECT();
     RECT *main_area_rect = GetMainAreaRECT();
-    int x = ((main_area_rect->x2 - main_area_rect->x) - GetImgWidth(DATA->id)) / 2;
-    int y = header_rect->y2 + ((main_area_rect->y2 - main_area_rect->y) - GetImgHeight(DATA->id)) / 2;
+    const int width = GetImgWidth(DATA->id);
+    const int height = GetImgHeight(DATA->id);
+    int x = ((main_area_rect->x2 - main_area_rect->x) - width) / 2;
+    int y = header_rect->y2 + ((main_area_rect->y2 - main_area_rect->y) - height) / 2;
+
+    DrawRectangle(x - 1, y - 1, x + width, y + height, RECT_DOT_OUTLINE,
+        GetPaletteAdrByColorIndex(PC_FOREGROUND), GetPaletteAdrByColorIndex(0x17));
     DrawImg(x, y, DATA->id);
 }
 
