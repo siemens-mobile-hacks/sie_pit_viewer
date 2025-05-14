@@ -16,7 +16,7 @@ static const SOFTKEYSTAB SOFTKEYS_TAB = {
 
 int OnKey(GUI *gui, GUI_MSG *msg) {
     GUI *main_gui = EDIT_GetUserPointer(gui);
-    UI_DATA *data = EDIT_GetUserPointer(main_gui);
+    UI_DATA *data = TViewGetUserPointer(main_gui);
 
     if (msg->keys == 0x18) {
         EDITCONTROL ec;
