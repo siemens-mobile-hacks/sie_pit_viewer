@@ -6,15 +6,17 @@
 #include "ui.h"
 #include "menu_options.h"
 
-#define PIT_MAX 20000
+#define PIT_MAX          20000
+#define UCS2_TOTAL_COUNT 0xD1
 
-static HEADER_DESC HEADER_D = {{0, 0, 0, 0}, NULL, (int)"", LGP_NULL};
+static HEADER_DESC HEADER_D = {{0, 0, 0, 0}, NULL, LGP_NULL, LGP_NULL};
 
 const int SOFTKEYS[] = {SET_LEFT_SOFTKEY, SET_MIDDLE_SOFTKEY, SET_RIGHT_SOFTKEY };
 
 static SOFTKEY_DESC SOFTKEY_D[] = {
-    {0x0018, 0x0000, (int)"Options"},
-    {0x0018, 0x0000, (int)LGP_MENU_PIC},
+    {0x0018, 0x0000, (int)"UCS2"},
+    {0x0018, 0x0000, (int)"PIT"},
+    {0x003D, 0x0000, (int)LGP_MENU_PIC},
     {0x0001, 0x0000, (int)"Exit"},
 };
 
@@ -26,7 +28,15 @@ static void OnRedraw(GUI *) {
     void *gui = GetTopGUI();
     UI_DATA *data = TViewGetUserPointer(gui);
 
-    IMGHDR *img = GetPITaddr(data->id);
+    IMGHDR *img = NULL;
+    switch (data->p_table) {
+        case TABLE_PIT: default:
+            img = GetPITaddr(data->pit_id);
+        break;
+        case TABLE_UCS2:
+            img = GetPITaddr(GetPicNByUnicodeSymbol(0xE100 + data->ucs2_id));
+        break;
+    }
     if (img) {
         WSHDR ws;
         uint16_t wsbody[16];
@@ -81,7 +91,7 @@ void FindLastID(GUI *gui) {
         id = MAX(id, strtol(p->file_name, NULL, 10));
         p = p->next;
     }
-    data->id = MAX(id, GetPITSize() - 1);
+    data->pit_id = MAX(id, GetPITSize() - 1);
 }
 
 void FindNextID(GUI *gui) {
@@ -94,12 +104,12 @@ void FindNextID(GUI *gui) {
     SIE_FILE *p = data->files;
     while (p) {
         int f_id = strtol(p->file_name, NULL, 10);
-        if (f_id >= GetPITSize() && f_id > data->id) {
+        if (f_id >= GetPITSize() && f_id > data->pit_id) {
             new_id = MIN(new_id, f_id);
         }
         p = p->next;
     }
-    data->id = (new_id == PIT_MAX) ? 0 : new_id;
+    data->pit_id = (new_id == PIT_MAX) ? 0 : new_id;
 }
 
 void FindPrevID(GUI *gui) {
@@ -112,38 +122,58 @@ void FindPrevID(GUI *gui) {
     SIE_FILE *p = data->files;
     while (p) {
         int f_id = strtol(p->file_name, NULL, 10);
-        if (GetPITSize() - 1 < f_id && f_id < data->id) {
+        if (GetPITSize() - 1 < f_id && f_id < data->pit_id) {
             new_id = MAX(new_id, f_id);
         }
         p = p->next;
     }
-    data->id = new_id;
+    data->pit_id = new_id;
 }
 
 static int OnKey(GUI *gui, GUI_MSG *msg) {
+    UI_DATA *data = TViewGetUserPointer(gui);
+
     if (msg->keys == 0x01) {
         return 1;
     } else if (msg->keys == 0x18) {
+        data->p_table++;
+        if (data->p_table > 1) {
+            data->p_table = 0;
+        }
+        DirectRedrawGUI();
+    } else if (msg->keys == 0x3D) {
         CreateMenu_Options(gui);
     }
     else if (msg->gbsmsg->msg == KEY_DOWN  || msg->gbsmsg->msg == LONG_PRESS) {
-        UI_DATA *data = TViewGetUserPointer(gui);
-
         int step = (msg->gbsmsg->msg == KEY_DOWN) ? 1 : 10;
         switch (msg->gbsmsg->submess) {
             case LEFT_BUTTON: case UP_BUTTON:
-                data->id -= step;
-                if (data->id < 0) {
-                    FindLastID(gui);
-                } else if (!GetPITaddr(data->id)) {
-                    FindPrevID(gui);
+                if (data->p_table == TABLE_PIT) {
+                    data->pit_id -= step;
+                    if (data->pit_id < 0) {
+                        FindLastID(gui);
+                    } else if (!GetPITaddr(data->pit_id)) {
+                        FindPrevID(gui);
+                    }
+                } else if (data->p_table == TABLE_UCS2) {
+                    data->ucs2_id -= step;
+                    if (data->ucs2_id < 0) {
+                        data->ucs2_id = UCS2_TOTAL_COUNT - 1;
+                    }
                 }
                 DirectRedrawGUI();
                 break;
             case RIGHT_BUTTON: case DOWN_BUTTON:
-                data->id += step;
-                if (!GetPITaddr(data->id)) {
-                    FindNextID(gui);
+                if (data->p_table == TABLE_PIT) {
+                    data->pit_id += step;
+                    if (!GetPITaddr(data->pit_id)) {
+                        FindNextID(gui);
+                    }
+                } else if (data->p_table == TABLE_UCS2) {
+                    data->ucs2_id += step;
+                    if (data->ucs2_id >= UCS2_TOTAL_COUNT) {
+                        data->ucs2_id = 0;
+                    }
                 }
                 DirectRedrawGUI();
                 break;
@@ -160,7 +190,11 @@ void SetHeader(GUI *gui) {
     UI_DATA *data = TViewGetUserPointer(gui);
 
     WSHDR *ws = AllocWS(32);
-    wsprintf(ws, "ID: %d %c0x%X%c", data->id, UTF16_ALIGN_RIGHT, data->id, UTF16_ALIGN_NONE);
+    if (data->p_table == TABLE_PIT) {
+        wsprintf(ws, "ID: %d %c0x%X%c", data->pit_id, UTF16_ALIGN_RIGHT, data->pit_id, UTF16_ALIGN_NONE);
+    } else if (data->p_table == TABLE_UCS2) {
+        wsprintf(ws, "UCS2: %d %c0x%X%c", data->ucs2_id, UTF16_ALIGN_RIGHT, data->ucs2_id + 0xE100, UTF16_ALIGN_NONE);
+    }
     SetHeaderText(GetHeaderPointer(gui), ws, malloc_adr(), mfree_adr());
 }
 
@@ -168,11 +202,12 @@ static void GHook(GUI *gui, int cmd) {
     UI_DATA *data = TViewGetUserPointer(gui);
 
     if (cmd == TI_CMD_REDRAW) {
+        const int lsk_id = data->p_table;
         SetHeader(gui);
-        SetMenuSoftKey(gui, &SOFTKEY_D[0], SET_LEFT_SOFTKEY);
-        SetMenuSoftKey(gui, &SOFTKEY_D[1], SET_MIDDLE_SOFTKEY);
+        SetMenuSoftKey(gui, &SOFTKEY_D[lsk_id], SET_LEFT_SOFTKEY);
+        SetMenuSoftKey(gui, &SOFTKEY_D[2], SET_MIDDLE_SOFTKEY);
 #ifdef NEWSGOLD
-        SetMenuSoftKey(gui, &SOFTKEY_D[2], SET_RIGHT_SOFTKEY);
+        SetMenuSoftKey(gui, &SOFTKEY_D[3], SET_RIGHT_SOFTKEY);
 #endif
     }
     else if (cmd == TI_CMD_CREATE) {

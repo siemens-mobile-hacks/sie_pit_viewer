@@ -6,8 +6,13 @@
     #define PIT_ICON_EMPTY 1336
 #endif
 
+#define TABLE_PIT  0x00
+#define TABLE_UCS2 0x01
+
 typedef struct {
-    int id;
+    int p_table;
+    int pit_id;
+    int ucs2_id;
     SIE_FILE *files;
 } UI_DATA;
 

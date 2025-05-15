@@ -24,12 +24,24 @@ int OnKey(GUI *gui, GUI_MSG *msg) {
         char number[8];
         ws_2str(ec.pWS, number, 7);
         int id = strtoul(number, NULL, 10);
-        if (GetPITaddr(id)) {
-            data->id = id;
-            return 1;
-        } else {
-            MsgBoxError(1, (int)"Not found!");
+        IMGHDR *img = NULL;
+        switch (data->p_table) {
+            case TABLE_PIT: default:
+                img = GetPITaddr(data->pit_id);
+                if (img) {
+                    data->pit_id = id;
+                    return 1;
+                }
+            break;
+            case TABLE_UCS2:
+                img = GetPITaddr(GetPicNByUnicodeSymbol(0xE100 + data->ucs2_id));
+                if (img) {
+                    data->ucs2_id = id;
+                    return 1;
+                }
+            break;
         }
+        MsgBoxError(1, (int)"Not found!");
     }
     return 0;
 }
