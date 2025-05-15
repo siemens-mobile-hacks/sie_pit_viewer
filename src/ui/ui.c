@@ -28,14 +28,28 @@ static void OnRedraw(GUI *) {
 
     IMGHDR *img = GetPITaddr(data->id);
     if (img) {
+        WSHDR ws;
+        uint16_t wsbody[16];
+        CreateLocalWS(&ws, wsbody, 16);
+
         RECT *header_rect = GetHeaderRECT();
         RECT *main_area_rect = GetMainAreaRECT();
         int x = ((main_area_rect->x2 - main_area_rect->x) - img->w) / 2;
+        int x2 = 0;
         int y = header_rect->y2 + ((main_area_rect->y2 - main_area_rect->y) - img->h) / 2;
+        int y2 = 0;
 
         DrawRectangle(x - 1, y - 1, x + img->w, y + img->h, RECT_DOT_OUTLINE,
                    GetPaletteAdrByColorIndex(PC_FOREGROUND), GetPaletteAdrByColorIndex(0x17));
         DrawIMGHDR(x, y, img);
+
+        x = 1;
+        y = main_area_rect->y + 1;
+        x2 = ScreenW() - 1 - 1;
+        y2 = y + GetFontYSIZE(FONT_SMALL);
+        wsprintf(&ws, "%dx%d", img->w, img->h);
+        DrawString(&ws, x, y, x2, y2, FONT_SMALL, TEXT_ALIGNRIGHT | TEXT_OUTLINE,
+                   GetPaletteAdrByColorIndex(PC_FOREGROUND), GetPaletteAdrByColorIndex(PC_BACKGROUND));
     }
 }
 
@@ -145,12 +159,9 @@ static int OnKey(GUI *gui, GUI_MSG *msg) {
 void SetHeader(GUI *gui) {
     UI_DATA *data = TViewGetUserPointer(gui);
 
-    WSHDR *ws = AllocWS(16);
-    wsprintf(ws, "%dx%d", GetImgWidth(data->id), GetImgHeight(data->id));
-    WSHDR *ws_extra = AllocWS(8);
-    wsprintf(ws_extra, "%d", data->id);
+    WSHDR *ws = AllocWS(32);
+    wsprintf(ws, "ID: %d %c0x%X%c", data->id, UTF16_ALIGN_RIGHT, data->id, UTF16_ALIGN_NONE);
     SetHeaderText(GetHeaderPointer(gui), ws, malloc_adr(), mfree_adr());
-    SetHeaderExtraText(GetHeaderPointer(gui), ws_extra, malloc_adr(), mfree_adr());
 }
 
 static void GHook(GUI *gui, int cmd) {
