@@ -26,17 +26,17 @@ static void OnRedraw(GUI *) {
     void *gui = GetTopGUI();
     UI_DATA *data = TViewGetUserPointer(gui);
 
+    IMGHDR *img = GetPITaddr(data->id);
+    if (img) {
+        RECT *header_rect = GetHeaderRECT();
+        RECT *main_area_rect = GetMainAreaRECT();
+        int x = ((main_area_rect->x2 - main_area_rect->x) - img->w) / 2;
+        int y = header_rect->y2 + ((main_area_rect->y2 - main_area_rect->y) - img->h) / 2;
 
-    RECT *header_rect = GetHeaderRECT();
-    RECT *main_area_rect = GetMainAreaRECT();
-    const int width = GetImgWidth(data->id);
-    const int height = GetImgHeight(data->id);
-    int x = ((main_area_rect->x2 - main_area_rect->x) - width) / 2;
-    int y = header_rect->y2 + ((main_area_rect->y2 - main_area_rect->y) - height) / 2;
-
-    DrawRectangle(x - 1, y - 1, x + width, y + height, RECT_DOT_OUTLINE,
-        GetPaletteAdrByColorIndex(PC_FOREGROUND), GetPaletteAdrByColorIndex(0x17));
-    DrawImg(x, y, data->id);
+        DrawRectangle(x - 1, y - 1, x + img->w, y + img->h, RECT_DOT_OUTLINE,
+                   GetPaletteAdrByColorIndex(PC_FOREGROUND), GetPaletteAdrByColorIndex(0x17));
+        DrawIMGHDR(x, y, img);
+    }
 }
 
 void FindPNGFiles(GUI *gui) {
