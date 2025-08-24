@@ -20,21 +20,23 @@ int OnKey(GUI *gui, GUI_MSG *msg) {
 
     if (msg->keys == 0x18) {
         EDITCONTROL ec;
-        ExtractEditControl(gui, 1, &ec);
         char number[8];
+
+        ExtractEditControl(gui, 1, &ec);
         ws_2str(ec.pWS, number, 7);
-        int id = strtoul(number, NULL, 10);
+
         IMGHDR *img = NULL;
+        int id = strtoul(number, NULL, 10);
         switch (data->p_table) {
             case TABLE_PIT: default:
-                img = GetPITaddr(data->pit_id);
+                img = GetPITaddr(id);
                 if (img) {
                     data->pit_id = id;
                     return 1;
                 }
             break;
             case TABLE_UCS2:
-                img = GetPITaddr(GetPicNByUnicodeSymbol(0xE100 + data->ucs2_id));
+                img = GetPITaddr(GetPicNByUnicodeSymbol(0xE100 + id));
                 if (img) {
                     data->ucs2_id = id;
                     return 1;

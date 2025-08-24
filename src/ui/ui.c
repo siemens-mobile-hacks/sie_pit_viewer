@@ -186,7 +186,7 @@ static int OnKey(GUI *gui, GUI_MSG *msg) {
     return -1;
 }
 
-void SetHeader(GUI *gui) {
+void SetUIHeader(GUI *gui) {
     UI_DATA *data = TViewGetUserPointer(gui);
 
     WSHDR *ws = AllocWS(32);
@@ -201,25 +201,27 @@ void SetHeader(GUI *gui) {
 static void GHook(GUI *gui, int cmd) {
     UI_DATA *data = TViewGetUserPointer(gui);
 
-    if (cmd == TI_CMD_REDRAW) {
+    if (cmd == UI_CMD_REDRAW) {
         const int lsk_id = data->p_table;
-        SetHeader(gui);
+        SetUIHeader(gui);
         SetMenuSoftKey(gui, &SOFTKEY_D[lsk_id], SET_LEFT_SOFTKEY);
         SetMenuSoftKey(gui, &SOFTKEY_D[2], SET_MIDDLE_SOFTKEY);
 #ifdef NEWSGOLD
         SetMenuSoftKey(gui, &SOFTKEY_D[3], SET_RIGHT_SOFTKEY);
 #endif
     }
-    else if (cmd == TI_CMD_CREATE) {
+    else if (cmd == UI_CMD_CREATE) {
         static GUI_METHODS gui_methods;
         void **m = GetDataOfItemByID(gui, 4);
         memcpy(&gui_methods, m[1], sizeof(GUI_METHODS));
         gui_methods.onRedraw = OnRedraw;
         m[1] = &gui_methods;
-    } else if (cmd == TI_CMD_DESTROY) {
+    } else if (cmd == UI_CMD_DESTROY) {
         if (data->files) {
             Sie_FS_DestroyFiles(data->files);
         }
+    } else if (cmd == UI_CMD_FOCUS) {
+        DisableIDLETMR();
     }
 }
 
