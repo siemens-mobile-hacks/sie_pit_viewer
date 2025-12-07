@@ -2,8 +2,14 @@
 
 #include <sie/sie.h>
 
-#ifdef ELKA
-    #define PIT_ICON_EMPTY 1336
+#ifdef NEWSGOLD
+    #ifdef ELKA
+        #define PIT_ICON_EMPTY 1336
+    #else
+        #define PIT_ICON_EMPTY 1380
+    #endif
+#else
+    #define PIT_ICON_EMPTY 226
 #endif
 
 #define TABLE_PIT  0x00
