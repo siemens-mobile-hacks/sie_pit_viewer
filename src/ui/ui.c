@@ -6,16 +6,14 @@
 #include "ui.h"
 #include "menu_options.h"
 
-#define PIT_MAX          20000
-#define UCS2_TOTAL_COUNT 0xD1
-
-static HEADER_DESC HEADER_D = {{0, 0, 0, 0}, NULL, LGP_NULL, LGP_NULL};
+static HEADER_DESC HEADER_D = {{0, 0, 0, 0}, NULL, LGP_NULL - 1, LGP_NULL - 1};
 
 const int SOFTKEYS[] = {SET_LEFT_SOFTKEY, SET_MIDDLE_SOFTKEY, SET_RIGHT_SOFTKEY };
 
 static SOFTKEY_DESC SOFTKEY_D[] = {
-    {0x0018, 0x0000, (int)"UCS2"},
     {0x0018, 0x0000, (int)"PIT"},
+    {0x0018, 0x0000, (int)"UCS2"},
+    {0x0018, 0x0000, (int)"LIT"},
     {0x003D, 0x0000, (int)LGP_MENU_PIC},
     {0x0001, 0x0000, (int)"Exit"},
 };
@@ -24,18 +22,21 @@ static SOFTKEYSTAB SOFTKEYS_TAB = {
     SOFTKEY_D, 0
 };
 
-static void OnRedraw(GUI *) {
+static void OnRedraw(WIDGET *widget) {
     void *gui = GetTopGUI();
     UI_DATA *data = TViewGetUserPointer(gui);
 
+    int icon = -1;
     IMGHDR *img = NULL;
-    switch (data->p_table) {
-        case TABLE_PIT: default:
-            img = GetPITaddr(data->pit_id);
-        break;
-        case TABLE_UCS2:
-            img = GetPITaddr(GetPicNByUnicodeSymbol(0xE100 + data->ucs2_id));
-        break;
+    if (data->p_table == PIT) {
+        icon = data->pit_id;
+    } else if (data->p_table == UCS2) {
+        icon = GetPicNByUnicodeSymbol(UCS2_ICON_0 + data->ucs2_id);
+    } else {
+        icon = GetLgpIcon(LGP_ICON_0 + data->lit_id);
+    }
+    if (icon >= 0) {
+        img = GetPITaddr(icon);
     }
     if (img) {
         WSHDR ws;
@@ -53,12 +54,13 @@ static void OnRedraw(GUI *) {
                    GetPaletteAdrByColorIndex(PC_FOREGROUND), GetPaletteAdrByColorIndex(0x17));
         DrawIMGHDR(x, y, img);
 
-        x = 1;
+        x = main_area_rect->x;
         y = main_area_rect->y + 1;
-        x2 = ScreenW() - 1 - 1;
+        x2 = main_area_rect->x2;
         y2 = y + GetFontYSIZE(FONT_SMALL);
-        wsprintf(&ws, "%dx%d", img->w, img->h);
-        DrawString(&ws, x, y, x2, y2, FONT_SMALL, TEXT_ALIGNRIGHT | TEXT_OUTLINE,
+        wsprintf(&ws, "ID: %d", icon);
+        wstrcatprintf(&ws, "%c%dx%d%c", UTF16_ALIGN_RIGHT, img->w, img->h, UTF16_ALIGN_NONE);
+        DrawString(&ws, x, y, x2, y2, FONT_SMALL, TEXT_OUTLINE,
                    GetPaletteAdrByColorIndex(PC_FOREGROUND), GetPaletteAdrByColorIndex(PC_BACKGROUND));
     }
 }
@@ -79,7 +81,7 @@ void FindPNGFiles(GUI *gui) {
     data->files = files;
 }
 
-void FindLastID(GUI *gui) {
+void PIT_FindLastID(GUI *gui) {
     UI_DATA *data = TViewGetUserPointer(gui);
     if (!data->files) {
         FindPNGFiles(gui);
@@ -94,7 +96,7 @@ void FindLastID(GUI *gui) {
     data->pit_id = MAX(id, GetPITSize() - 1);
 }
 
-void FindNextID(GUI *gui) {
+void PIT_FindNextID(GUI *gui) {
     UI_DATA *data = TViewGetUserPointer(gui);
     if (!data->files) {
         FindPNGFiles(gui);
@@ -112,7 +114,7 @@ void FindNextID(GUI *gui) {
     data->pit_id = (new_id == PIT_MAX) ? 0 : new_id;
 }
 
-void FindPrevID(GUI *gui) {
+void PIT_FindPrevID(GUI *gui) {
     UI_DATA *data = TViewGetUserPointer(gui);
     if (!data->files) {
         FindPNGFiles(gui);
@@ -137,7 +139,7 @@ static int OnKey(GUI *gui, GUI_MSG *msg) {
         return 1;
     } else if (msg->keys == 0x18) {
         data->p_table++;
-        if (data->p_table > 1) {
+        if (data->p_table > 2) {
             data->p_table = 0;
         }
         DirectRedrawGUI();
@@ -148,31 +150,41 @@ static int OnKey(GUI *gui, GUI_MSG *msg) {
         int step = (msg->gbsmsg->msg == KEY_DOWN) ? 1 : 10;
         switch (msg->gbsmsg->submess) {
             case LEFT_BUTTON: case UP_BUTTON:
-                if (data->p_table == TABLE_PIT) {
+                if (data->p_table == PIT) {
                     data->pit_id -= step;
                     if (data->pit_id < 0) {
-                        FindLastID(gui);
+                        PIT_FindLastID(gui);
                     } else if (!GetPITaddr(data->pit_id)) {
-                        FindPrevID(gui);
+                        PIT_FindPrevID(gui);
                     }
-                } else if (data->p_table == TABLE_UCS2) {
+                } else if (data->p_table == UCS2) {
                     data->ucs2_id -= step;
                     if (data->ucs2_id < 0) {
                         data->ucs2_id = UCS2_TOTAL_COUNT - 1;
+                    }
+                } else if (data->p_table == LIT) {
+                    data->lit_id -= step;
+                    if (data->lit_id < 0) {
+                        data->lit_id = LIT_TOTAL_COUNT - 1;
                     }
                 }
                 DirectRedrawGUI();
                 break;
             case RIGHT_BUTTON: case DOWN_BUTTON:
-                if (data->p_table == TABLE_PIT) {
+                if (data->p_table == PIT) {
                     data->pit_id += step;
                     if (!GetPITaddr(data->pit_id)) {
-                        FindNextID(gui);
+                        PIT_FindNextID(gui);
                     }
-                } else if (data->p_table == TABLE_UCS2) {
+                } else if (data->p_table == UCS2) {
                     data->ucs2_id += step;
                     if (data->ucs2_id >= UCS2_TOTAL_COUNT) {
                         data->ucs2_id = 0;
+                    }
+                } else {
+                    data->lit_id += step;
+                    if (data->lit_id >= LIT_TOTAL_COUNT) {
+                        data->lit_id = 0;
                     }
                 }
                 DirectRedrawGUI();
@@ -188,34 +200,43 @@ static int OnKey(GUI *gui, GUI_MSG *msg) {
 
 void SetUIHeader(GUI *gui) {
     UI_DATA *data = TViewGetUserPointer(gui);
-
-    WSHDR *ws = AllocWS(32);
-    if (data->p_table == TABLE_PIT) {
-        wsprintf(ws, "ID: %d %c0x%X%c", data->pit_id, UTF16_ALIGN_RIGHT, data->pit_id, UTF16_ALIGN_NONE);
-    } else if (data->p_table == TABLE_UCS2) {
-        wsprintf(ws, "UCS2: %d %c0x%X%c", data->ucs2_id, UTF16_ALIGN_RIGHT, data->ucs2_id + 0xE100, UTF16_ALIGN_NONE);
+    WSHDR *ws_header = AllocWS(32);
+    WSHDR *ws_extra_header = AllocWS(8);
+    if (data->p_table == PIT) {
+        wsprintf(ws_header, "PIT: 0x%X", data->pit_id);
+        wsprintf(ws_extra_header, "%d", data->pit_id);
+    } else if (data->p_table == UCS2) {
+        wsprintf(ws_header, "UCS2: 0x%X", data->ucs2_id + UCS2_ICON_0);
+        wsprintf(ws_extra_header, "%d", data->ucs2_id);
+    } else if (data->p_table == LIT) {
+        wsprintf(ws_header, "LIT: 0x%X", data->lit_id + LGP_ICON_0);
+        wsprintf(ws_extra_header, "%d", data->lit_id);
     }
-    SetHeaderText(GetHeaderPointer(gui), ws, malloc_adr(), mfree_adr());
+    void *ma = malloc_adr();
+    void *mf = mfree_adr();
+    void *header = GetHeaderPointer(gui);
+    SetHeaderText(header, ws_header, ma, mf);
+    SetHeaderExtraText(header, ws_extra_header, ma, mf);
 }
 
 static void GHook(GUI *gui, int cmd) {
     UI_DATA *data = TViewGetUserPointer(gui);
 
     if (cmd == UI_CMD_REDRAW) {
-        const int lsk_id = data->p_table;
+        const int lsk_id = (data->p_table < 2) ? data->p_table + 1 : 0;
         SetUIHeader(gui);
         SetMenuSoftKey(gui, &SOFTKEY_D[lsk_id], SET_LEFT_SOFTKEY);
-        SetMenuSoftKey(gui, &SOFTKEY_D[2], SET_MIDDLE_SOFTKEY);
+        SetMenuSoftKey(gui, &SOFTKEY_D[3], SET_MIDDLE_SOFTKEY);
 #ifdef NEWSGOLD
-        SetMenuSoftKey(gui, &SOFTKEY_D[3], SET_RIGHT_SOFTKEY);
+        SetMenuSoftKey(gui, &SOFTKEY_D[4], SET_RIGHT_SOFTKEY);
 #endif
     }
     else if (cmd == UI_CMD_CREATE) {
         static GUI_METHODS gui_methods;
-        void **m = GetDataOfItemByID(gui, 4);
-        memcpy(&gui_methods, m[1], sizeof(GUI_METHODS));
+        WIDGET *m = GetDataOfItemByID(gui, 4);
+        memcpy(&gui_methods, m->methods, sizeof(GUI_METHODS));
         gui_methods.onRedraw = OnRedraw;
-        m[1] = &gui_methods;
+        m->methods = &gui_methods;
     } else if (cmd == UI_CMD_DESTROY) {
         if (data->files) {
             Sie_FS_DestroyFiles(data->files);
@@ -253,7 +274,8 @@ int CreateUI() {
     WSHDR *ws = AllocWS(1);
     void *gui = TViewGetGUI(malloc, mfree);
     TViewSetDefinition(gui, &TVIEW_D);
-    SetHeaderToMenu(gui, &HEADER_D, malloc);
+
+    SetHeader(gui, &HEADER_D, malloc);
     TViewSetText(gui, ws, malloc, mfree);
     TViewSetUserPointer(gui, data);
 

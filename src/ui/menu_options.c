@@ -7,7 +7,7 @@
 
 static HEADER_DESC HEADER_D = {{0, 0, 0, 0}, NULL, (int)"Options", LGP_NULL};
 
-int ICON_EMPTY[] = {PIT_ICON_EMPTY};
+int ICON_EMPTY[] = {MENU_ICON_EMPTY};
 
 static const MENUITEM_DESC MENU_ITEMS[MAX_ITEMS] = {
     {ICON_EMPTY, (int)"Go to...", LGP_NULL, 0, NULL,MENU_FLAG3, MENU_FLAG2},

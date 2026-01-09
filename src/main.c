@@ -15,13 +15,13 @@ static void CSM_OnCreate(CSM_RAM *data) {
 }
 
 static void CSM_OnClose(CSM_RAM *csm) {
-    SUBPROC((void *)kill_elf);
+    SUBPROC(kill_elf);
 }
 
 static int CSM_OnMessage(CSM_RAM *data, GBS_MSG *msg) {
     MAIN_CSM *csm = (MAIN_CSM*)data;
     if ((msg->msg == MSG_GUI_DESTROYED) && ((int)msg->data0 == csm->gui_id)) {
-        csm->csm.state = -3;
+        csm->csm.state = CSM_STATE_CLOSED;
     }
     return 1;
 }

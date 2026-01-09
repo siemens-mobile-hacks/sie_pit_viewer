@@ -27,21 +27,25 @@ int OnKey(GUI *gui, GUI_MSG *msg) {
 
         IMGHDR *img = NULL;
         int id = strtoul(number, NULL, 10);
-        switch (data->p_table) {
-            case TABLE_PIT: default:
-                img = GetPITaddr(id);
-                if (img) {
-                    data->pit_id = id;
-                    return 1;
-                }
-            break;
-            case TABLE_UCS2:
-                img = GetPITaddr(GetPicNByUnicodeSymbol(0xE100 + id));
-                if (img) {
-                    data->ucs2_id = id;
-                    return 1;
-                }
-            break;
+        if (data->p_table == PIT) {
+            img = GetPITaddr(id);
+            if (img) {
+                data->pit_id = id;
+                return 1;
+            }
+        } else if (data->p_table == UCS2) {
+            img = GetPITaddr(GetPicNByUnicodeSymbol(UCS2_ICON_0 + id));
+            if (img) {
+                data->ucs2_id = id;
+                return 1;
+            }
+        } else if (data->p_table == LIT) {
+            int icon = GetLgpIcon(LGP_ICON_0 + id);
+            img = GetPITaddr(icon);
+            if (img) {
+                data->lit_id = id;
+                return 1;
+            }
         }
         MsgBoxError(1, (int)"Not found!");
     }
@@ -63,11 +67,11 @@ static INPUTDIA_DESC INPUTDIA_D = {
     &SOFTKEYS_TAB,
     {0, 0, 0, 0},
     FONT_SMALL,
-    100,
-    101,
+    0x64,
+    0x65,
     0,
-    { 0 },
-    { INPUTDIA_FLAGS_SWAP_SOFTKEYS },
+    0,
+    INPUTDIA_FLAGS_SWAP_SOFTKEYS,
 };
 
 int CreateInputTextDialog_GoTo(GUI *main_gui) {
